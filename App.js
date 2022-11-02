@@ -1,6 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 
 import Header from './components/Header';
 import StartGameScreen from './screens/StartGameScreen';
@@ -11,9 +13,34 @@ export default function App() {
   const [userNumber, setUserNumber] = useState();
   const [guessRounds, setGuessRounds] = useState(0);
 
+  const [fontsLoaded] = useFonts({
+    'OpenSans-Bold': require('./assets/fonts/OpenSans-Bold.ttf'),
+    'OpenSans-Regular': require('./assets/fonts/OpenSans-Regular.ttf'),
+  });
+  useEffect(() => {
+    async function prepare() {
+      await SplashScreen.preventAutoHideAsync();
+    }
+    prepare();
+  }, []);
+
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  const configureNewGameHandler = () => {
+    setGuessRounds(0);
+    setUserNumber(null);
+  };
+
   const startGameHandler = (selectedNumber) => {
     setUserNumber(selectedNumber);
-    setGuessRounds(0);
   };
 
   const gameOverHandler = (numOfRounds) => {
@@ -28,12 +55,17 @@ export default function App() {
       <GamerScreen userChoice={userNumber} onGameOver={gameOverHandler} />
     );
   } else if (guessRounds > 0) {
-    console.log('HELP');
-    content = <GameOverScreen />;
+    content = (
+      <GameOverScreen
+        roundsNumber={guessRounds}
+        userNumber={userNumber}
+        onRestart={configureNewGameHandler}
+      />
+    );
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={styles.screen} onLayout={onLayoutRootView}>
       <Header title="Guess an Number" />
       {content}
 
